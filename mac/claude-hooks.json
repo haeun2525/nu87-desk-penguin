@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "mkdir -p ~/.breadpet && date +%s > ~/.breadpet/claude_start 2>/dev/null || true" } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "mkdir -p ~/.breadpet && date +%s > ~/.breadpet/claude_stop 2>/dev/null || true" } ] }
+    ]
+  }
+}
