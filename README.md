@@ -87,6 +87,8 @@ python3 notify_bridge.py --demo     # 음악·일정·스트레칭·Claude·우�
 - **카톡·메일**: 맥 알림 센터 기록(`~/Library/Group Containers/group.com.apple.usernoted/db2/db`)을 1.5초마다 읽어 새 알림을 찾습니다.
   카카오톡 앱 알림, 크롬 알림 중 `mail.google.com` 에서 온 것만 씁니다. 메일 주소·제목은 열려 있는 지메일 탭 목록에서 읽어요.
   → **시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근 권한** 에 python3(자동 실행이면 Python.app)을 켜야 읽힙니다.
+    목록에 없으면 + → Cmd+Shift+G → `/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app`.
+    Xcode 안의 Python.app 은 켜 놔도 막히는 경우가 있어서 `mac/install.sh` 는 Command Line Tools 쪽 Python 을 씁니다.
 - **유튜브 노래**: 크롬 탭을 AppleScript 로 봅니다. 크롬 메뉴 **보기 › 개발자 › Apple Events의 자바스크립트 허용** 을 켜면 재생 중인지·채널·챕터까지 읽어요.
 - **구글 캘린더**: 캘린더 설정의 **비공개 주소(iCal 형식)** 를 `~/.breadpet/config.json` 에 넣으면 일정 10분 전·시작할 때 알려 줍니다.
   ```json
