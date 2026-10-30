@@ -2,7 +2,7 @@
 import json, math, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
-LAT, LON, PLACE = 37.5665, 126.9780, "서울"
+LAT, LON, PLACE = 37.5665, 126.9780, "서울"   # 내 동네 위도·경도로 바꾸기
 F = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
 BIG = ImageFont.truetype(F, 26, index=6)
 MID = ImageFont.truetype(F, 13, index=6)
@@ -11,12 +11,14 @@ SMALL = ImageFont.truetype(F, 12, index=4)
 
 def fetch():
     url = (f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}"
-           "&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+           "&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&hourly=precipitation_probability"
            "&timezone=Asia%2FSeoul&forecast_days=1")
     j = json.load(urllib.request.urlopen(url, timeout=10))
+    now_h = j["current"]["time"][:13]                    # 비 확률은 지금부터 오늘 끝까지만 (이미 지난 새벽 비는 빼기)
+    pops = [p for t, p in zip(j["hourly"]["time"], j["hourly"]["precipitation_probability"]) if t[:13] >= now_h and p is not None]
     return dict(t=j["current"]["temperature_2m"], code=j["current"]["weather_code"],
                 hi=j["daily"]["temperature_2m_max"][0], lo=j["daily"]["temperature_2m_min"][0],
-                pop=j["daily"]["precipitation_probability_max"][0])
+                pop=max(pops) if pops else 0)
 
 
 def kind(code):
