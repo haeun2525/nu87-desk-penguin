@@ -9,6 +9,7 @@
  *     'p' + 1024바이트 = 맥이 그린 화면 한 장(128×64) 을 8초 보여줌 — 날씨 같은 정보 화면
  *     → 놀란 얼굴 + 말풍선/봉투 아이콘이 통통 튐 4초 → 평소 얼굴로 돌아가도 구석에 작은 아이콘이 5분 남음
  *   - 구석 아이콘은 5분 뒤 저절로 사라짐. 터치(TTP223 → PA28, 정수리) / 't' 로도 지움
+ *     'K' / 'G' = 카톡 / 메일 표시만 지움 (맥에서 카톡 창·지메일 탭을 앞으로 띄우면 bridge 가 보냄)
  *   - 평소엔 잠 (깜빡임이 업무에 방해 → 사용자 요청). 알림·터치 때만 깼다가 4초 뒤 다시 잠
  *   - 'h' = Claude 작업 끝 → 4초 동안 좋아함
  *   - 잠자다 알림 오면 깸
@@ -315,6 +316,8 @@ void pollSerial() {
     }
 #endif
     if (c == 't') onTouch();                 // 시리얼로 터치 흉내 (배선 전 확인용)
+    if (c == 'K') pet.unreadK = false;       // 맥에서 카톡 창을 봤음 → 말풍선 표시만 조용히 지움
+    if (c == 'G') pet.unreadG = false;       // 지메일 탭을 봤음 → 봉투 표시만 지움
     if (c == 'k' || c == 'g') { hasName = false; notifyMs = NOTIFY_MS; onNotify(c); }   // 이름 없이 알림
     if (c == 'h') { pet.idleMs = 0; pet.happyMs = 4000; setState(HAPPY); Serial.println("좋아함 (Claude 끝)"); }
   }

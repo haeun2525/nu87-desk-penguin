@@ -5,7 +5,7 @@
   카카오톡 알림                         → 'k'
   Chrome 알림 중 mail.google.com 에서 온 것 → 'g'  (지메일 설정 > 데스크톱 알림 켜기, 지메일 탭은 열어 둬야 함)
 
-날씨: 30분마다 'p' + 1024바이트(128×64 화면) 로 날씨 화면을 보냄 (Open-Meteo, 서울)
+날씨: 30분마다 'p' + 1024바이트(128×64 화면) 로 날씨 화면을 보냄 (Open-Meteo, 삼성동)
 
 사용: python3 notify_bridge.py         (Ctrl+C 로 끔)
       python3 notify_bridge.py --weather  (날씨 화면 지금 한 번 보내기)
@@ -16,7 +16,7 @@
   카톡: 보낸 사람(단톡이면 방 이름) + 메시지 앞부분   지메일: 메일 주소 + 제목 (지메일 탭 목록에서 읽음)
   내용 끄기: ~/.breadpet/config.json 에 "show_content": false  (책상 옆 사람에게 보일 수 있음)
 """
-import glob, plistlib, sqlite3, sys, time
+import glob, plistlib, sqlite3, subprocess, sys, time
 import serial
 from name_bitmap import render, to_bytes, text_width, render_wide, to_bytes_w
 import weather
@@ -28,6 +28,23 @@ DB = glob.os.path.expanduser("~/Library/Group Containers/group.com.apple.usernot
 KAKAO = "com.kakao.kakaotalkmac"
 CHROME = "com.google.chrome.framework.alertnotificationservice"
 POLL = 1.5
+
+
+def front_seen():
+    """지금 맨 앞 창이 카톡이면 'k', 크롬의 지메일 탭이면 'g' — 사용자가 확인한 걸로 보고 보드 표시를 지움"""
+    try:
+        asn = subprocess.run(["lsappinfo", "front"], capture_output=True, text=True, timeout=3).stdout.strip()
+        bid = subprocess.run(["lsappinfo", "info", "-only", "bundleid", asn], capture_output=True, text=True, timeout=3).stdout
+    except Exception:
+        return None
+    if "com.kakao.KakaoTalkMac" in bid or KAKAO in bid.lower():
+        return "k"
+    if "com.google.Chrome" in bid:
+        r = subprocess.run(["osascript", "-e", 'tell application "Google Chrome" to get URL of active tab of front window'],
+                           capture_output=True, text=True, timeout=3)
+        if "mail.google.com" in r.stdout:
+            return "g"
+    return None
 
 
 def find_port():
@@ -200,6 +217,7 @@ def main():
     print("[bridge] 알림 기다리는 중 (카톡 / 지메일), 날씨는 30분마다")
     next_weather = time.time() + 5
     next_feat = 0
+    unread = {}         # 보드 구석에 떠 있는 표시 {'k'/'g': 뜬 시각} — 카톡 창·지메일 탭을 보면 지움 (보드도 5분 뒤 스스로 지움)
     queue = []          # (보낼 시각, 데이터) — 화면이 8초 떠 있으니 겹치지 않게 줄 세움
     while True:
         try:
@@ -238,13 +256,19 @@ def main():
                 if k == "g":                           # 메일은 이름 대신 주소
                     try: name = (features.gmail_top() or {}).get("e") or name
                     except Exception: pass
-                send(board, k, name)
+                send(board, k, name); unread[k] = time.time()
                 t = time.time()
                 for img in content_pages(k, name, body):
                     t += 5; queue.append((t, ("p", img)))
                 queue.sort(key=lambda q: q[0])
                 print(time.strftime("%H:%M:%S"), "→", "카톡" if k == "k" else "지메일", name)
                 time.sleep(0.3)
+            unread = {k: t for k, t in unread.items() if time.time() - t < 300}
+            if unread:
+                seen = front_seen()
+                if seen in unread:
+                    board.write(seen.upper().encode()); unread.pop(seen)
+                    print(time.strftime("%H:%M:%S"), "→ 확인함, 표시 지움:", "카톡" if seen == "k" else "지메일")
             board.read(256)   # 보드 로그 버리기
         except serial.SerialException:
             print("[bridge] 보드 끊김"); board = open_board()
