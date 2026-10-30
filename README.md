@@ -73,7 +73,11 @@ python3 notify_bridge.py --test     # 카톡·메일 알림 한 번씩
 python3 notify_bridge.py --demo     # 음악·일정·스트레칭·Claude·우산 화면 차례로
 ./show.sh                           # 촬영용 전체 시연 (약 1분 40초, ./show.sh loop 는 반복)
 ./alerts.sh                         # 촬영용 알림 장면만
+./alerts.sh 엄마                     # 실제로 왔던 알림 중 이름에 '엄마'가 들어간 마지막 6개 다시 띄우기
+./alerts.sh "엄마" "밥 먹었어?" "전화해"   # 적은 내용으로 (같은 사람이 이어 보낸 것처럼)
 ```
+
+맥 알림 센터는 메시지를 확인하면 기록을 지워서, bridge 가 받은 알림 최근 200개를 `~/.breadpet/recent.jsonl` 에 따로 남깁니다(맥 밖으로 나가지 않음).
 
 | 파일 | 하는 일 |
 |---|---|

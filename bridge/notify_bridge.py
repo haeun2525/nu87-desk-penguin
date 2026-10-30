@@ -5,7 +5,7 @@
   카카오톡 알림                         → 'k'
   Chrome 알림 중 mail.google.com 에서 온 것 → 'g'  (지메일 설정 > 데스크톱 알림 켜기, 지메일 탭은 열어 둬야 함)
 
-날씨: 30분마다 'p' + 1024바이트(128×64 화면) 로 날씨 화면을 보냄 (Open-Meteo, 삼성동)
+날씨: 30분마다 'p' + 1024바이트(128×64 화면) 로 날씨 화면을 보냄 (Open-Meteo, 서울)
 
 사용: python3 notify_bridge.py         (Ctrl+C 로 끔)
       python3 notify_bridge.py --weather  (날씨 화면 지금 한 번 보내기)
@@ -16,7 +16,7 @@
   카톡: 보낸 사람(단톡이면 방 이름) + 메시지 앞부분   지메일: 메일 주소 + 제목 (지메일 탭 목록에서 읽음)
   내용 끄기: ~/.breadpet/config.json 에 "show_content": false  (책상 옆 사람에게 보일 수 있음)
 """
-import glob, plistlib, sqlite3, subprocess, sys, time
+import glob, json, plistlib, sqlite3, subprocess, sys, time
 import serial
 from name_bitmap import render, to_bytes, text_width, render_wide, to_bytes_w
 import weather
@@ -29,6 +29,7 @@ KAKAO = "com.kakao.kakaotalkmac"
 CHROME = "com.google.chrome.framework.alertnotificationservice"
 POLL = 1.5
 SAME_SENDER_S = 60     # 같은 사람 알림이 이 안에 또 오면 놀란 얼굴 건너뛰고 내용만
+RECENT = glob.os.path.expanduser("~/.breadpet/recent.jsonl")   # 촬영 때 다시 띄우려고 최근 알림 200개만 맥에 남김 (알림 센터는 확인하면 지워서)
 
 
 def front_seen():
@@ -141,6 +142,39 @@ def show(board, loop=False, only_alerts=False):
     say("끝")
 
 
+def remember(k, name, body):
+    try:
+        lines = open(RECENT).read().splitlines()[-199:]
+    except OSError:
+        lines = []
+    lines.append(json.dumps({"t": time.time(), "k": k, "name": name, "body": body}, ensure_ascii=False))
+    open(RECENT, "w").write("\n".join(lines) + "\n")
+
+
+def recent(who=None, n=6):
+    """기록에서 보낸 사람 이름에 who 가 들어간 알림 (없으면 전부) 의 마지막 n 개"""
+    try:
+        evs = [json.loads(l) for l in open(RECENT) if l.strip()]
+    except OSError:
+        evs = []
+    if who: evs = [e for e in evs if who in e["name"]]
+    return [(e["k"], e["name"], e["body"]) for e in evs[-n:]]
+
+
+def replay(board, msgs):
+    """촬영용: 실제 알림처럼 — 같은 사람이 이어서 보낸 건 놀란 얼굴 한 번 + 내용만 이어서"""
+    time.sleep(2); board.read(1000)
+    prev = None
+    for k, name, body in msgs:
+        print(time.strftime("%H:%M:%S"), "→", name, "|", body.replace("\n", " ")[:40], flush=True)
+        if (k, name) != prev:
+            send(board, k, name); time.sleep(5)
+        prev = (k, name)
+        for img in screens.message_pages(k, name, body):
+            send_picture(board, img); time.sleep(5)
+    time.sleep(4)
+
+
 def content_pages(k, name, body):
     """알림 뒤에 이어 보여줄 내용 화면들"""
     if not features.config().get("show_content", True):
@@ -194,6 +228,13 @@ def main():
         return
     if "--alerts" in sys.argv:
         show(board, only_alerts=True)
+        return
+    if "--replay" in sys.argv:                    # --replay [보낸 사람] [내용1 내용2 ...]
+        a = sys.argv[sys.argv.index("--replay") + 1:]
+        msgs = [("k", a[0], b) for b in a[1:]] if len(a) > 1 else recent(a[0] if a else None)
+        if not msgs:
+            print("기록에 없음:", a[0] if a else "(최근 알림)"); return
+        replay(board, msgs)
         return
     if "--show" in sys.argv:
         show(board, loop="--loop" in sys.argv)
@@ -269,6 +310,8 @@ def main():
                     t += 5; queue.append((t, ("p", img)))
                 queue.sort(key=lambda q: q[0])
                 print(time.strftime("%H:%M:%S"), "→", "카톡" if k == "k" else "지메일", name)
+                try: remember(k, name, body)
+                except OSError: pass
                 time.sleep(0.3)
             unread = {k: t for k, t in unread.items() if time.time() - t < 300}
             if unread:
