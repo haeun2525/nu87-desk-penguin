@@ -112,7 +112,7 @@ def music():
         if np is None: _last_song = None if song is None else _last_song
         return None
     _last_song = song
-    return screens.screen("music", song, np[1], 2), False
+    return screens.screen("music", song, np[1], 1, title_lines=2), False   # 곡 제목 2줄, 채널 1줄
 
 
 # ─────────────── 구글 캘린더 (비밀 iCal 주소) ───────────────

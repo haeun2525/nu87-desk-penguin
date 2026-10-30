@@ -2,3 +2,4 @@ pyserial
 pillow
 icalendar
 recurring-ical-events
+fonttools

@@ -1,4 +1,5 @@
 """이름 글자를 OLED 용 1비트 그림(128×16, 256바이트)으로. 한글은 보드 글꼴에 없어서 맥에서 그려 보냄."""
+from textfix import clean
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 128, 16
@@ -6,6 +7,7 @@ FONT = ImageFont.truetype("/System/Library/Fonts/AppleSDGothicNeo.ttc", 14, inde
 
 
 def render(text):
+    text = clean(text)
     img = Image.new("1", (W, H), 0)
     d = ImageDraw.Draw(img)
     text = " ".join(text.split())
@@ -37,11 +39,13 @@ if __name__ == "__main__":
 
 
 def text_width(text):
+    text = clean(text)
     d = ImageDraw.Draw(Image.new("1", (1, 1)))
     return int(d.textlength(" ".join(text.split()), font=FONT))
 
 
 def render_wide(text, w=256):
+    text = clean(text)
     """긴 이름(메일 주소 등) — 256×16 에 왼쪽 정렬. 보드가 옆으로 흘려 보여줌"""
     img = Image.new("1", (w, H), 0)
     d = ImageDraw.Draw(img)

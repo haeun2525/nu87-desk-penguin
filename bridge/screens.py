@@ -1,4 +1,5 @@
 """정보 화면 (128×64, 1비트) — 왼쪽 아이콘 + 오른쪽 한글 2~3줄. 보드는 'p' + 1024바이트로 받아 8초 보여줌"""
+from textfix import clean
 from PIL import Image, ImageDraw, ImageFont
 
 F = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
@@ -55,10 +56,11 @@ def icon(d, kind, x=2, y=14):
         for dx in (3, 30): d.line([x + dx, y + 22, x + dx - 2, y + 27], fill=1, width=1)
 
 
-def screen(kind, title, body="", body_lines=2):
+def screen(kind, title, body="", body_lines=2, title_lines=1):
+    title, body = clean(title), clean(body)
     img = Image.new("1", (128, 64)); d = ImageDraw.Draw(img)
     icon(d, kind)
-    t_lines = _wrap(d, title, TITLE, TW, 2 if not body else 1)
+    t_lines = _wrap(d, title, TITLE, TW, 2 if not body else title_lines)
     b_lines = _wrap(d, body, BODY, TW, body_lines) if body else []
     h = len(t_lines) * 17 + len(b_lines) * 15
     y = max(0, (64 - h) // 2)
@@ -101,6 +103,7 @@ def _pix(d, rows, x, y):
 def message_pages(kind, header, body, header_font=None, max_pages=2):
     """kind 'k' (카톡: header=보낸 사람, body=메시지) / 'g' (메일: header=메일 주소, body=제목)
     맨 위 줄 = 작은 아이콘 + header, 아래 3줄 = body. 길면 페이지를 나눔 (마지막 페이지 끝은 …)"""
+    header, body = clean(header), clean(body)
     hf = header_font or (SMALL if kind == "g" else TITLE)
     probe = ImageDraw.Draw(Image.new("1", (1, 1)))
     head = _wrap(probe, header, hf, 128 - 15, 1)[0] if header else ""
