@@ -28,6 +28,7 @@ DB = glob.os.path.expanduser("~/Library/Group Containers/group.com.apple.usernot
 KAKAO = "com.kakao.kakaotalkmac"
 CHROME = "com.google.chrome.framework.alertnotificationservice"
 POLL = 1.5
+SAME_SENDER_S = 60     # 같은 사람 알림이 이 안에 또 오면 놀란 얼굴 건너뛰고 내용만
 
 
 def front_seen():
@@ -217,6 +218,7 @@ def main():
     print("[bridge] 알림 기다리는 중 (카톡 / 지메일), 날씨는 30분마다")
     next_weather = time.time() + 5
     next_feat = 0
+    last_from = (None, 0)   # 마지막 알림 (종류, 보낸 사람), 시각
     unread = {}         # 보드 구석에 떠 있는 표시 {'k'/'g': 뜬 시각} — 카톡 창·지메일 탭을 보면 지움 (보드도 5분 뒤 스스로 지움)
     queue = []          # (보낼 시각, 데이터) — 화면이 8초 떠 있으니 겹치지 않게 줄 세움
     while True:
@@ -256,8 +258,13 @@ def main():
                 if k == "g":                           # 메일은 이름 대신 주소
                     try: name = (features.gmail_top() or {}).get("e") or name
                     except Exception: pass
-                send(board, k, name); unread[k] = time.time()
-                t = time.time()
+                now = time.time()
+                same = (k, name) == last_from[0] and now - last_from[1] < SAME_SENDER_S
+                last_from = ((k, name), now); unread[k] = now
+                if same:                               # 같은 사람이 이어서 보냄 → 놀란 얼굴 없이 내용만 이어 붙임
+                    t = max([q[0] for q in queue if q[1][0] == "p"] + [now - 5])
+                else:
+                    send(board, k, name); t = now
                 for img in content_pages(k, name, body):
                     t += 5; queue.append((t, ("p", img)))
                 queue.sort(key=lambda q: q[0])
